@@ -22,7 +22,7 @@ sorular=[
         "B": "17",
         "C": "19",
         "D": "20",
-        "Dogru Cevap": "17"
+        "Dogru Cevap": "B"
     },
     {
         "Soru": "Hangi ülkeye giderseniz Baltık Denizi'nde yüzemezsiniz ?",
