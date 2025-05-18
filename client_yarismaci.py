@@ -121,25 +121,34 @@ class YarismaciClient:
     def cevap_gonder(self, cevap):
         try:
             self.socket.sendall(cevap.encode())
+
             for btn in self.secenek_buttons:
                 btn.configure(state="disabled")
             self.seyirci_joker_btn.configure(state="disabled")
             self.yariyariya_joker_btn.configure(state="disabled")
 
             response = self.socket.recv(1024).decode()
-            try:
-                data = json.loads(response)
-                if data["durum"] == "dogru":
-                    self.bilgi_label.configure(text="Doğru Cevap!", text_color="green")
-                elif data["durum"] == "yanlis":
-                    self.bilgi_label.configure(
-                        text=f"Yanlış Cevap! Doğru: {data['dogru']}", text_color="red"
-                    )
-                self.root.after(2000, self.get_next_question)
-            except json.JSONDecodeError:
-                if "Yarışma sona erdi" in response:
-                    messagebox.showinfo("Bilgi", "Yarışma sona erdi!")
-                    self.root.destroy()
+            print(" Sunucudan gelen:", response)
+
+            #  Birden fazla JSON blok geldiyse ayır
+            json_blocks = response.split("}{")
+            if len(json_blocks) > 1:
+                json_blocks = [json_blocks[0] + "}", "{" + json_blocks[1]]
+            else:
+                json_blocks = [response]
+
+            data = json.loads(json_blocks[0])
+
+            if data.get("durum") == "dogru":
+                self.bilgi_label.configure(text="Doğru Cevap!", text_color="green")
+            elif data.get("durum") == "yanlis":
+                self.bilgi_label.configure(
+                    text=f"Yanlış Cevap! Doğru: {data['dogru']}", text_color="red"
+                )
+
+            # Sıradaki soruyu zamanlayarak iste
+            self.root.after(2000, self.get_next_question)
+
         except Exception as e:
             messagebox.showerror("Hata", f"Cevap gönderilirken hata oluştu: {str(e)}")
 

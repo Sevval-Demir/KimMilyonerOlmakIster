@@ -1,6 +1,7 @@
 import socket
 import json
 from sorular import sorular
+import time
 
 PROGRAM_HOST = "127.0.0.1"
 PROGRAM_PORT = 4337
@@ -42,6 +43,8 @@ def handle_client(conn, addr):
                 pass  # JSON değilse cevap olarak kabul edilecek
 
             cevap = gelen_veri.strip().upper()
+            print(f"Cevap: {cevap} / Doğru: {soru['Dogru Cevap']}")
+
             if cevap == soru["Dogru Cevap"]:
                 conn.sendall(json.dumps({"durum": "dogru"}).encode())
             else:
@@ -49,7 +52,7 @@ def handle_client(conn, addr):
                     "durum": "yanlis",
                     "dogru": soru["Dogru Cevap"]
                 }).encode())
-
+            time.sleep(0.2)
         except Exception as e:
             print("HATA:", e)
             conn.sendall(json.dumps({"hata": str(e)}).encode())
@@ -57,6 +60,7 @@ def handle_client(conn, addr):
 
     conn.sendall("Yarışma sona erdi!".encode())
     conn.close()
+
 
 def start_server():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as server:
