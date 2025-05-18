@@ -18,6 +18,11 @@ class YarismaciClient:
 
         self.get_next_question()
 
+        # Puan durumu için başlatma
+        self.puan = 0  # Başlangıç puanı
+        self.puan_label = ctk.CTkLabel(self.main_frame, text=f"Puan: {self.puan}", font=("Arial", 14))
+        self.puan_label.pack(pady=10)
+
     def setup_ui(self):
         self.main_frame = ctk.CTkFrame(self.root)
         self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
@@ -141,10 +146,13 @@ class YarismaciClient:
 
             if data.get("durum") == "dogru":
                 self.bilgi_label.configure(text="Doğru Cevap!", text_color="green")
+                self.puan += 100  # Puanı artır
             elif data.get("durum") == "yanlis":
                 self.bilgi_label.configure(
                     text=f"Yanlış Cevap! Doğru: {data['dogru']}", text_color="red"
                 )
+
+            self.puan_label.configure(text=f"Puan: {self.puan}")  # Puanı güncelle
 
             # Sıradaki soruyu zamanlayarak iste
             self.root.after(2000, self.get_next_question)
