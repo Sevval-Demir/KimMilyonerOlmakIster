@@ -17,6 +17,8 @@ class YarismaciClient:
             return
 
         self.puan = 0  # Başlangıç puanı
+        self.dogru_sayisi = 0  # Doğru cevap sayısı
+
         self.puan_label = ctk.CTkLabel(self.main_frame, text=f"Puan: {self.puan}", font=("Arial", 14))
         self.puan_label.pack(pady=10)
 
@@ -95,9 +97,15 @@ class YarismaciClient:
             self.root.destroy()
 
     def show_question(self):
-        self.soru_label.configure(text=self.current_question["Soru"])
+        soru_no = self.current_question.get("Soru No", "")
+        soru_metni = self.current_question["Soru"]
+        self.soru_label.configure(text=f"{soru_no}\n\n{soru_metni}")
+
         for i, sec in enumerate(["A", "B", "C", "D"]):
-            self.secenek_buttons[i].configure(text=f"{sec}: {self.current_question[sec]}", state="normal")
+            self.secenek_buttons[i].configure(
+                text=f"{sec}: {self.current_question[sec]}", state="normal"
+            )
+
         self.seyirci_joker_btn.configure(state="normal")
         self.yariyariya_joker_btn.configure(state="normal")
         self.bilgi_label.configure(text="")
@@ -122,13 +130,21 @@ class YarismaciClient:
             data = json.loads(json_blocks[0])
 
             if data.get("durum") == "dogru":
+                self.dogru_sayisi += 1
                 self.bilgi_label.configure(text="Doğru Cevap!", text_color="green")
                 self.puan += 100
-            elif data.get("durum") == "yanlis":
-                self.bilgi_label.configure(text=f"Yanlış Cevap! Doğru: {data['dogru']}", text_color="red")
+                self.puan_label.configure(text=f"Puan: {self.puan}")
+                self.root.after(2000, self.get_next_question)
 
-            self.puan_label.configure(text=f"Puan: {self.puan}")
-            self.root.after(2000, self.get_next_question)
+            elif data.get("durum") == "yanlis":
+                dogru = data["dogru"]
+                odul = data.get("odul", "Hiçbir şey 😢")
+                self.bilgi_label.configure(
+                    text=f"Yanlış Cevap! Doğru: {dogru}\nKazandığınız: {odul}",
+                    text_color="red"
+                )
+                self.puan_label.configure(text=f"Puan: {self.puan}")
+                self.root.after(3000, self.show_final_screen)
 
         except Exception as e:
             messagebox.showerror("Hata", f"Cevap gönderilirken hata oluştu: {str(e)}")
@@ -174,13 +190,24 @@ class YarismaciClient:
     def show_final_screen(self):
         final_window = ctk.CTkToplevel(self.root)
         final_window.title("Yarışma Bitti")
-        final_window.geometry("400x300")
-        final_window.grab_set()  # Modal pencere
+        final_window.geometry("400x350")
+        final_window.grab_set()
 
         ctk.CTkLabel(final_window, text="Yarışma Tamamlandı!", font=("Arial", 18)).pack(pady=20)
         ctk.CTkLabel(final_window, text=f"Toplam Puanınız: {self.puan}", font=("Arial", 16)).pack(pady=10)
+        ctk.CTkLabel(final_window, text=f"Doğru Sayısı: {self.dogru_sayisi}", font=("Arial", 14)).pack(pady=5)
 
-        # Başarı mesajı
+        oduller = [
+            "Linç Yükleniyor",
+            "Önemli olan katılmaktı",
+            "İki birden büyüktür",
+            "Buralara kolay gelmedik",
+            "Sen bu işi biliyorsun",
+            "Harikasın"
+        ]
+        kazanilan_odul = oduller[self.dogru_sayisi]
+        ctk.CTkLabel(final_window, text=f"Kazandığınız: {kazanilan_odul}", font=("Arial", 14), wraplength=300).pack(pady=5)
+
         if self.puan >= 500:
             mesaj = "Mükemmel! Gerçek bir bilgi ustasısınız! 🧠"
         elif self.puan >= 300:
@@ -191,7 +218,6 @@ class YarismaciClient:
             mesaj = "Başlamak da bir başarı! Devam et! 🚀"
 
         ctk.CTkLabel(final_window, text=mesaj, font=("Arial", 14), wraplength=300, justify="center").pack(pady=10)
-
         ctk.CTkButton(final_window, text="Kapat", command=self.root.destroy).pack(pady=20)
 
 if __name__ == "__main__":

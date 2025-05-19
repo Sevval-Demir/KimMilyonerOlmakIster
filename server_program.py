@@ -3,6 +3,7 @@ import json
 import threading
 import time
 from sorular import sorular
+from random import sample
 
 PROGRAM_HOST = "127.0.0.1"
 PROGRAM_PORT = 4337
@@ -27,57 +28,64 @@ def joker_iste(joker_tipi, dogru_cevap):
 
 def handle_client(conn, addr):
     print(f"[+] Bağlantı sağlandı: {addr}")
-
-    kullanilan_jokerler = []  # Joker kullanım takibi
+    kullanilan_jokerler = []
+    oduller = [
+        "Linç Yükleniyor",
+        "Önemli olan katılmaktı",
+        "İki birden büyüktür",
+        "Buralara kolay gelmedik",
+        "Sen bu işi biliyorsun",
+        "Harikasın"
+    ]
 
     try:
-        for soru in sorular:
-            conn.sendall(json.dumps(soru).encode())
+        secilecek_soru_sayisi = 5
+        rastgele_sorular = sample(sorular, secilecek_soru_sayisi)
+
+        dogru_sayisi = 0
+
+        for index, soru in enumerate(rastgele_sorular):
+            soru_gonder = soru.copy()
+            soru_gonder["Soru No"] = f"Soru {index + 1}/{secilecek_soru_sayisi}"
+            conn.sendall(json.dumps(soru_gonder).encode())
 
             while True:
                 gelen_veri = conn.recv(1024).decode()
                 if not gelen_veri:
                     raise Exception("İstemciden veri alınamadı. Bağlantı kesildi.")
 
-                print(f"[{addr}] Gelen veri: {gelen_veri}")
-
                 try:
                     mesaj = json.loads(gelen_veri)
-
-                    # Joker kullanımı
                     if "joker" in mesaj:
                         joker_tipi = mesaj["joker"]
-
                         if joker_tipi in kullanilan_jokerler:
                             conn.sendall(json.dumps({
                                 "hata": f"'{joker_tipi}' jokerini zaten kullandınız!"
                             }).encode())
                             continue
-
                         dogru_cevap = soru["Dogru Cevap"]
                         sonuc = joker_iste(joker_tipi, dogru_cevap)
-
                         if "hata" not in sonuc:
-                            kullanilan_jokerler.append(joker_tipi)  # Joker başarıyla kullanıldıysa ekle
-
+                            kullanilan_jokerler.append(joker_tipi)
                         conn.sendall(json.dumps(sonuc).encode())
-                        continue  # Soruyu tekrar sor
+                        continue
 
                 except json.JSONDecodeError:
-                    pass  # JSON değilse, cevap olarak değerlendirilir
+                    pass
 
                 cevap = gelen_veri.strip().upper()
-                print(f"[{addr}] Cevap: {cevap} / Doğru: {soru['Dogru Cevap']}")
-
                 if cevap == soru["Dogru Cevap"]:
+                    dogru_sayisi += 1
                     conn.sendall(json.dumps({"durum": "dogru"}).encode())
                 else:
                     conn.sendall(json.dumps({
                         "durum": "yanlis",
-                        "dogru": soru["Dogru Cevap"]
+                        "dogru": soru["Dogru Cevap"],
+                        "odul": oduller[dogru_sayisi]
                     }).encode())
+                    break  # Yarışma biter
                 time.sleep(0.3)
-                break  # Bir sonraki soruya geç
+                break
 
         conn.sendall("Yarışma sona erdi!".encode())
 
