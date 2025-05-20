@@ -8,6 +8,7 @@ class YarismaciClient:
         self.root = root
         self.root.title("Yarışma Programı")
         self.root.geometry("800x600")
+        self.root.configure(bg="#F5F3EF")  # kırık beyaz arka plan
 
         self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.setup_ui()
@@ -16,22 +17,25 @@ class YarismaciClient:
             self.root.destroy()
             return
 
-        self.puan = 0  # Başlangıç puanı
-        self.dogru_sayisi = 0  # Doğru cevap sayısı
+        self.puan = 0
+        self.dogru_sayisi = 0
 
-        self.puan_label = ctk.CTkLabel(self.main_frame, text=f"Puan: {self.puan}", font=("Arial", 14))
+        self.puan_label = ctk.CTkLabel(self.main_frame, text=f"Puan: {self.puan}", font=("Arial", 14), text_color="#3D3D3D")
         self.puan_label.pack(pady=10)
 
         self.get_next_question()
 
     def setup_ui(self):
-        self.main_frame = ctk.CTkFrame(self.root)
+        self.main_frame = ctk.CTkFrame(self.root, fg_color="#F5F3EF")
         self.main_frame.pack(pady=20, padx=20, fill="both", expand=True)
 
-        self.soru_label = ctk.CTkLabel(self.main_frame, text="", font=("Arial", 16), wraplength=700, justify="left")
+        self.soru_label = ctk.CTkLabel(
+            self.main_frame, text="", font=("Arial", 16),
+            wraplength=700, justify="left", text_color="#4C3A51"
+        )
         self.soru_label.pack(pady=20)
 
-        self.secenek_frame = ctk.CTkFrame(self.main_frame)
+        self.secenek_frame = ctk.CTkFrame(self.main_frame, fg_color="#F5F3EF")
         self.secenek_frame.pack(pady=10)
 
         self.secenek_buttons = []
@@ -42,33 +46,39 @@ class YarismaciClient:
                 font=("Arial", 14),
                 width=300,
                 height=40,
+                fg_color="#5D3FD3",
+                hover_color="#7F5EE2",
+                text_color="white",
+                corner_radius=20,
                 command=lambda idx=i: self.cevap_gonder(chr(65 + idx))
             )
             btn.pack(pady=5)
             self.secenek_buttons.append(btn)
 
-        self.joker_frame = ctk.CTkFrame(self.main_frame)
+        self.joker_frame = ctk.CTkFrame(self.main_frame, fg_color="#F5F3EF")
         self.joker_frame.pack(pady=20)
 
         self.seyirci_joker_btn = ctk.CTkButton(
             self.joker_frame, text="Seyirci Jokeri", font=("Arial", 12),
-            command=lambda: self.joker_kullan("seyirci")
+            fg_color="#D6CCFF", hover_color="#C4B5FD", text_color="#2F195F",
+            corner_radius=15, command=lambda: self.joker_kullan("seyirci")
         )
         self.seyirci_joker_btn.pack(side="left", padx=10)
 
         self.yariyariya_joker_btn = ctk.CTkButton(
             self.joker_frame, text="Yarı Yarıya Joker", font=("Arial", 12),
-            command=lambda: self.joker_kullan("yariyariya")
+            fg_color="#D6CCFF", hover_color="#C4B5FD", text_color="#2F195F",
+            corner_radius=15, command=lambda: self.joker_kullan("yariyariya")
         )
         self.yariyariya_joker_btn.pack(side="left", padx=10)
 
-        self.bilgi_label = ctk.CTkLabel(self.main_frame, text="", font=("Arial", 14), text_color="yellow")
+        self.bilgi_label = ctk.CTkLabel(self.main_frame, text="", font=("Arial", 14), text_color="#3D3D3D")
         self.bilgi_label.pack(pady=10)
 
-        self.seyirci_frame = ctk.CTkFrame(self.main_frame)
+        self.seyirci_frame = ctk.CTkFrame(self.main_frame, fg_color="#F5F3EF")
         self.seyirci_labels = {}
         for i, sec in enumerate(["A", "B", "C", "D"]):
-            lbl = ctk.CTkLabel(self.seyirci_frame, text=f"{sec}: %0", font=("Arial", 12))
+            lbl = ctk.CTkLabel(self.seyirci_frame, text=f"{sec}: %0", font=("Arial", 12), text_color="#4C3A51")
             lbl.grid(row=0, column=i, padx=10)
             self.seyirci_labels[sec] = lbl
 
@@ -85,16 +95,21 @@ class YarismaciClient:
             data = self.socket.recv(1024).decode()
             if not data:
                 return
-
             if "Yarışma sona erdi" in data:
                 self.show_final_screen()
                 return
 
             self.current_question = json.loads(data)
-            self.show_question()
+            self.fade_out_and_in()
         except Exception as e:
             messagebox.showerror("Hata", f"Soru alınırken hata oluştu: {str(e)}")
             self.root.destroy()
+
+    def fade_out_and_in(self):
+        self.soru_label.configure(text="")
+        for btn in self.secenek_buttons:
+            btn.configure(text="", state="disabled")
+        self.root.after(400, self.show_question)
 
     def show_question(self):
         soru_no = self.current_question.get("Soru No", "")
@@ -116,7 +131,7 @@ class YarismaciClient:
             self.socket.sendall(cevap.encode())
 
             for btn in self.secenek_buttons:
-                btn.configure(state="disabled")
+                btn.configure(state="disabled", fg_color="#D3F9D8")
             self.seyirci_joker_btn.configure(state="disabled")
             self.yariyariya_joker_btn.configure(state="disabled")
 
@@ -131,7 +146,7 @@ class YarismaciClient:
 
             if data.get("durum") == "dogru":
                 self.dogru_sayisi += 1
-                self.bilgi_label.configure(text="Doğru Cevap!", text_color="green")
+                self.bilgi_label.configure(text="Doğru Cevap!", text_color="#4CAF50")
                 self.puan += 100
                 self.puan_label.configure(text=f"Puan: {self.puan}")
                 self.root.after(2000, self.get_next_question)
@@ -141,7 +156,7 @@ class YarismaciClient:
                 odul = data.get("odul", "Hiçbir şey 😢")
                 self.bilgi_label.configure(
                     text=f"Yanlış Cevap! Doğru: {dogru}\nKazandığınız: {odul}",
-                    text_color="red"
+                    text_color="#E53935"
                 )
                 self.puan_label.configure(text=f"Puan: {self.puan}")
                 self.root.after(3000, self.show_final_screen)
@@ -172,7 +187,7 @@ class YarismaciClient:
             messagebox.showerror("Hata", f"Joker kullanılırken hata oluştu: {str(e)}")
 
     def show_seyirci_joker(self, oranlar):
-        self.bilgi_label.configure(text="Seyirci Jokeri Sonuçları:", text_color="blue")
+        self.bilgi_label.configure(text="Seyirci Jokeri Sonuçları:", text_color="#1B998B")
         for sec in ["A", "B", "C", "D"]:
             if sec in oranlar:
                 self.seyirci_labels[sec].configure(text=f"{sec}: %{oranlar[sec]}")
@@ -180,7 +195,7 @@ class YarismaciClient:
 
     def show_yariyariya_joker(self, kalanlar):
         self.bilgi_label.configure(
-            text=f"Yarı Yarıya Joker: {', '.join(kalanlar)} seçenekleri kaldı", text_color="blue"
+            text=f"Yarı Yarıya Joker: {', '.join(kalanlar)} seçenekleri kaldı", text_color="#1B998B"
         )
         for i, btn in enumerate(self.secenek_buttons):
             secenek = chr(65 + i)
@@ -192,6 +207,7 @@ class YarismaciClient:
         final_window.title("Yarışma Bitti")
         final_window.geometry("400x350")
         final_window.grab_set()
+        final_window.configure(bg="#F5F3EF")
 
         ctk.CTkLabel(final_window, text="Yarışma Tamamlandı!", font=("Arial", 18)).pack(pady=20)
         ctk.CTkLabel(final_window, text=f"Toplam Puanınız: {self.puan}", font=("Arial", 16)).pack(pady=10)
@@ -221,8 +237,7 @@ class YarismaciClient:
         ctk.CTkButton(final_window, text="Kapat", command=self.root.destroy).pack(pady=20)
 
 if __name__ == "__main__":
-    ctk.set_appearance_mode("dark")
-    ctk.set_default_color_theme("blue")
+    ctk.set_appearance_mode("light")
     root = ctk.CTk()
     app = YarismaciClient(root)
     root.mainloop()
