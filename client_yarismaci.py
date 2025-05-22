@@ -174,8 +174,11 @@ class YarismaciClient:
         try:
             istek = {"joker": joker_tipi}
             self.socket.sendall(json.dumps(istek).encode())
-            self.seyirci_joker_btn.configure(state="disabled")
-            self.yariyariya_joker_btn.configure(state="disabled")
+
+            if joker_tipi == "seyirci":
+                self.seyirci_joker_btn.configure(state="disabled")
+            elif joker_tipi == "yariyariya":
+                self.yariyariya_joker_btn.configure(state="disabled")
 
             response = self.socket.recv(1024).decode()
             joker_sonuc = json.loads(response)
